@@ -8,6 +8,7 @@ CORS(app)
 app.config['UPLOAD_FOLDER'] = './'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'text'}
 line_Count = 1
+versionflag = 0
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -19,25 +20,31 @@ def index():
 @app.route('/GetFileData', methods=['GET'])
 def funn():
     global line_Count
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
+    global versionflag
+    if versionflag == 1:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
     
-    try:
-        with open(file_path, 'r') as file:
+        try:
+           with open(file_path, 'r') as file:
             lines = file.readlines()
         
-        lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
-        print (lines[0])
-        # Return the lines as plain text
-        myData=''.join(lines[line_Count-1])
-        if myData == ":00000001FF":
-            line_Count = 1
-            return myData, 200
-        else:
-            return myData, 200
+            lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
+            print (lines.count)
+             # Return the lines as plain text
+            myData=''.join(lines[line_Count-1])
+            if myData == ":00000001FF":
+                line_Count = 1
+                versionflag = 0
+                return myData, 200
+            else:
+                return myData, 200
     
-    except FileNotFoundError:
-        response = jsonify({'message': 'File not found'})
-        return response, 404
+        except FileNotFoundError:
+            response = jsonify({'message': 'File not found'})
+            return response, 404
+    else:
+        response = jsonify({'message': 'you are uptodate'})
+        return response, 402
 
 @app.route('/ok', methods=['POST'])
 def IncreaseLine():
@@ -65,6 +72,8 @@ def IncreaseLine():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    global versionflag
+
     if 'file' not in request.files:
         response = jsonify({'message': 'No file part in the request'})
         return response, 400
@@ -75,6 +84,7 @@ def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
         file.save(file_path)
         response = jsonify({'message': 'File uploaded successfully', 'file_path': file_path})
+        versionflag = 1
         return response, 200
     else:
         response = jsonify({'message': 'Invalid file type'})
