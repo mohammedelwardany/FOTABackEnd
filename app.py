@@ -9,7 +9,7 @@ app.config['UPLOAD_FOLDER'] = './'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'text'}
 line_Count = 1
 versionflag = 0
-
+maxCount = 0
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
@@ -21,6 +21,7 @@ def index():
 def funn():
     global line_Count
     global versionflag
+    global maxCount
     if versionflag == 1:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
     
@@ -29,7 +30,8 @@ def funn():
             lines = file.readlines()
         
             lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
-            print (lines.count)
+            maxCount = len(lines)
+            
              # Return the lines as plain text
             myData=''.join(lines[line_Count-1])
             if myData == ":00000001FF":
@@ -49,6 +51,8 @@ def funn():
 @app.route('/ok', methods=['POST'])
 def IncreaseLine():
     global line_Count
+    global maxCount
+    global versionflag
     data = request.get_json()
     
     if 'CMD' in data:
@@ -58,6 +62,10 @@ def IncreaseLine():
         print(message)
         if message == "1":
             line_Count = line_Count + 1
+            if line_Count > maxCount:
+                line_Count = 1
+                versionflag = 0
+
             # Return a response
             response = jsonify({'status': 'success', 'message': 'Message received','line':line_Count})
             return response, 200
