@@ -61,7 +61,7 @@ def funn():
 
 
 
-@app.route('/readLineFile.txt', methods=['GET'])
+@app.route('/Line.txt', methods=['GET'])
 def read_line_file():
     line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
     
