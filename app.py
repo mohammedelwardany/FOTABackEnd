@@ -34,6 +34,8 @@ def funn():
             
              # Return the lines as plain text
             myData=''.join(lines[line_Count-1])
+            file_path = os.path.join(myData, 'Line.txt')
+            file.save(file_path)
             if myData == ":00000001FF":
                 line_Count = 1
                 versionflag = 0
