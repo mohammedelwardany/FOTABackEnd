@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template,send_from_directory
 import os
 from werkzeug.utils import secure_filename
+
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -55,6 +56,25 @@ def funn():
     else:
         response = jsonify({'message': 'you are uptodate'})
         return response, 402
+
+
+
+
+
+@app.route('/readLineFile', methods=['GET'])
+def read_line_file():
+    line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
+    
+    try:
+        # Send the file as a response
+        return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt')
+        
+    except FileNotFoundError:
+        response = jsonify({'message': 'File not found'})
+        return response, 404
+    
+
+
 
 
 @app.route('/ok', methods=['POST'])
