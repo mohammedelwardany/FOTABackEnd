@@ -10,8 +10,8 @@ app = Flask(__name__)
 CORS(app)
 # MQTT broker configuration
 
-# mqtt_broker = "34.142.56.252"
-mqtt_broker = "localhost"
+mqtt_broker = "34.142.56.252"
+# mqtt_broker = "localhost"
 mqtt_port = 1883
 
 app.config['UPLOAD_FOLDER'] = './'
