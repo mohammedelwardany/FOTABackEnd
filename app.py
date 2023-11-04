@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template,send_from_directory
 import os
 from werkzeug.utils import secure_filename
 import time
-
+from threading import Thread, Event
 import paho.mqtt.client as mqtt
 from flask_cors import CORS
 
@@ -22,6 +22,9 @@ mqtt_publish_topic = "control/device"
 line_Count = 1
 versionflag = 0
 maxCount = 0
+
+
+message_ok_event = Event()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -63,16 +66,41 @@ def funn():
             line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
             with open(line_file_path, 'w') as line_file:
                 line_file.write(myData)
-                
+               
             mqtt_client.publish(mqtt_publish_topic, myData)
-            
+            mqtt_client.publish('sensor/data', 'NOK') 
+            # Subscribe to the 'sensor/data' topic and wait for 'message ok' signal
+            message_ok_event.clear()
+            mqtt_client.subscribe('sensor/data', qos=1)
+            mqtt_client.on_message = on_message
+            message_ok_event.wait()  # Wait until the event is set (i.e., 'message ok' is received)
         
+        mqtt_client.publish('update/data', '0') 
         return "All lines published successfully", 200
 
     except FileNotFoundError:
         response = jsonify({'message': 'File not found'})
         return response, 404
 
+
+def on_message(client, userdata, msg):
+    if msg.topic == 'sensor/data' and msg.payload.decode('utf-8') == 'ok':
+        client.unsubscribe('sensor/data')
+        message_ok_event.set()
+
+
+# mqtt_client.on_connect = on_connect
+# mqtt_client.connect(mqtt_broker_address, mqtt_broker_port, keepalive=60)
+# mqtt_client.loop_start()
+
+# Connect to the MQTT broker
+mqtt_client = mqtt.Client()
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+
+# Start the MQTT client in a background thread
+mqtt_client.loop_start()
 
 
 
@@ -169,6 +197,7 @@ def upload_file():
         file.save(file_path)
         response = jsonify({'message': 'File uploaded successfully', 'file_path': file_path})
         versionflag = 1
+        mqtt_client.publish('update/data', '1')
         return response, 200
     else:
         response = jsonify({'message': 'Invalid file type'})
@@ -178,14 +207,7 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    # Connect to the MQTT broker
-    mqtt_client = mqtt.Client()
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
-    mqtt_client.connect(mqtt_broker, mqtt_port, 60)
 
-    # Start the MQTT client in a background thread
-    mqtt_client.loop_start()
 
     # Run the Flask application
     app.run(host='0.0.0.0', port=5000, debug=True)
