@@ -1,18 +1,39 @@
 from flask import Flask, request, jsonify, render_template,send_from_directory
 import os
 from werkzeug.utils import secure_filename
+import time
 
+import paho.mqtt.client as mqtt
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
+# MQTT broker configuration
+
+mqtt_broker = "34.142.56.252"
+mqtt_port = 1883
+
 app.config['UPLOAD_FOLDER'] = './'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'text'}
+##mqtt vars
+mqtt_subscribe_topic = "sensor/data"
+mqtt_publish_topic = "control/device"
+#general vars
 line_Count = 1
 versionflag = 0
 maxCount = 0
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+
+def on_connect(client, userdata, flags, rc):
+    print("Connected to MQTT broker with result code " + str(rc))
+    client.subscribe(mqtt_subscribe_topic)
+
+def on_message(client, userdata, msg):
+    print("Received MQTT message on topic " + msg.topic + ": " + str(msg.payload))
+
 
 @app.route('/')
 def index():
@@ -24,93 +45,86 @@ def funn():
     global versionflag
     global maxCount
     line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
-    if versionflag == 1:
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
 
-        try:
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
 
-            lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
-            maxCount = len(lines)
+    try:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
 
-            # Return the lines as plain text
-            myData = ''.join(lines[line_Count - 1])
+        lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
+        maxCount = len(lines)
+        line_Count = 0
+
+        # Return the lines as plain text
+        
+        for line in lines:
+            myData = line.strip()
             line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
             with open(line_file_path, 'w') as line_file:
                 line_file.write(myData)
-
-
-            if myData == ":00000001FF":
-                line_Count = 1
-                versionflag = 0
                 
-                
-                
-                return myData, 200
-            else:
-                return myData, 200
+            mqtt_client.publish(mqtt_publish_topic, myData)
+            
+        
+        return "All lines published successfully", 200
 
-        except FileNotFoundError:
-            response = jsonify({'message': 'File not found'})
-            return response, 404
-    else:
-        response = jsonify({'message': 'you are uptodate'})
-        return response, 402
+    except FileNotFoundError:
+        response = jsonify({'message': 'File not found'})
+        return response, 404
 
 
 
 
+# @app.route('/Line.txt', methods=['GET'])
+# def read_line_file():
 
-@app.route('/Line.txt', methods=['GET'])
-def read_line_file():
-
-    return "okay from server"
+#     return "okay from server"
 
     
-    # global line_Count
-    # global versionflag
-    # global maxCount
-    # line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
-    # if versionflag == 1:
-    #     file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
+#     # global line_Count
+#     # global versionflag
+#     # global maxCount
+#     # line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
+#     # if versionflag == 1:
+#     #     file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
 
-    #     try:
-    #         with open(file_path, 'r') as file:
-    #             lines = file.readlines()
+#     #     try:
+#     #         with open(file_path, 'r') as file:
+#     #             lines = file.readlines()
 
-    #         lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
-    #         maxCount = len(lines)
+#     #         lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
+#     #         maxCount = len(lines)
 
-    #         # Return the lines as plain text
-    #         myData = ''.join(lines[line_Count - 1])
-    #         line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
-    #         with open(line_file_path, 'w') as line_file:
-    #             line_file.write(myData)
+#     #         # Return the lines as plain text
+#     #         myData = ''.join(lines[line_Count - 1])
+#     #         line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
+#     #         with open(line_file_path, 'w') as line_file:
+#     #             line_file.write(myData)
 
 
-    #         if myData == ":00000001FF":
-    #             line_Count = 1
-    #             versionflag = 0
+#     #         if myData == ":00000001FF":
+#     #             line_Count = 1
+#     #             versionflag = 0
                 
                 
                 
-    #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
-    #         else:
-    #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
+#     #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
+#     #         else:
+#     #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
 
-    #     except FileNotFoundError:
-    #         response = jsonify({'message': 'File not found'})
-    #         return response, 404
-    # else:
-    #     response = jsonify({'message': 'you are uptodate'})
-    #     return response, 402
+#     #     except FileNotFoundError:
+#     #         response = jsonify({'message': 'File not found'})
+#     #         return response, 404
+#     # else:
+#     #     response = jsonify({'message': 'you are uptodate'})
+#     #     return response, 402
     
 
 
 
 
-@app.route('/ok', methods=['POST'])
+@app.route('/ok', methods=['GET'])
 def IncreaseLine():
     global line_Count
     global maxCount
@@ -164,4 +178,64 @@ def upload_file():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Connect to the MQTT broker
+    mqtt_client = mqtt.Client()
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
+    mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+
+    # Start the MQTT client in a background thread
+    mqtt_client.loop_start()
+
+    # Run the Flask application
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
+#########################################
+
+# from flask import Flask, request
+
+# import paho.mqtt.client as mqtt
+
+# app = Flask(__name__)
+
+# # MQTT broker configuration
+# mqtt_broker = "34.142.56.252"
+# mqtt_port = 1883
+
+# MQTT topics for publish and subscribe
+# mqtt_subscribe_topic = "sensor/data"
+# mqtt_publish_topic = "control/device"
+
+# # MQTT callback functions
+# def on_connect(client, userdata, flags, rc):
+#     print("Connected to MQTT broker with result code " + str(rc))
+#     client.subscribe(mqtt_subscribe_topic)
+
+# def on_message(client, userdata, msg):
+#     print("Received MQTT message on topic " + msg.topic + ": " + str(msg.payload))
+
+@app.route('/sensor', methods=['POST'])
+def receive_sensor_data():
+    data = request.get_json()
+    # Process the received sensor data
+    # ...
+
+    # Publish a response to the device
+    response = "Data received successfully / " 
+    mqtt_client.publish(mqtt_publish_topic, str(data))
+
+    return "OK"
+
+# if __name__ == '__main__':
+#     # Connect to the MQTT broker
+#     mqtt_client = mqtt.Client()
+#     mqtt_client.on_connect = on_connect
+#     mqtt_client.on_message = on_message
+#     mqtt_client.connect(mqtt_broker, mqtt_port, 60)
+
+#     # Start the MQTT client in a background thread
+#     mqtt_client.loop_start()
+
+#     # Run the Flask application
+#     app.run(host='0.0.0.0', port=5000, debug=True)
+
