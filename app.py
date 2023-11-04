@@ -74,7 +74,7 @@ def funn():
             mqtt_client.subscribe('sensor/data', qos=1)
             mqtt_client.on_message = on_message
             message_ok_event.wait()  # Wait until the event is set (i.e., 'message ok' is received)
-        
+            return "1", 200
         mqtt_client.publish('update/data', '0') 
         return "All lines published successfully", 200
 
@@ -89,10 +89,6 @@ def on_message(client, userdata, msg):
         message_ok_event.set()
 
 
-# mqtt_client.on_connect = on_connect
-# mqtt_client.connect(mqtt_broker_address, mqtt_broker_port, keepalive=60)
-# mqtt_client.loop_start()
-
 # Connect to the MQTT broker
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
@@ -101,55 +97,6 @@ mqtt_client.connect(mqtt_broker, mqtt_port, 60)
 
 # Start the MQTT client in a background thread
 mqtt_client.loop_start()
-
-
-
-# @app.route('/Line.txt', methods=['GET'])
-# def read_line_file():
-
-#     return "okay from server"
-
-    
-#     # global line_Count
-#     # global versionflag
-#     # global maxCount
-#     # line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
-#     # if versionflag == 1:
-#     #     file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Boot.txt')
-
-#     #     try:
-#     #         with open(file_path, 'r') as file:
-#     #             lines = file.readlines()
-
-#     #         lines = [line.strip() for line in lines]  # Remove any leading/trailing whitespace
-#     #         maxCount = len(lines)
-
-#     #         # Return the lines as plain text
-#     #         myData = ''.join(lines[line_Count - 1])
-#     #         line_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Line.txt')
-#     #         with open(line_file_path, 'w') as line_file:
-#     #             line_file.write(myData)
-
-
-#     #         if myData == ":00000001FF":
-#     #             line_Count = 1
-#     #             versionflag = 0
-                
-                
-                
-#     #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
-#     #         else:
-#     #             return send_from_directory(app.config['UPLOAD_FOLDER'], 'Line.txt'), 200
-
-#     #     except FileNotFoundError:
-#     #         response = jsonify({'message': 'File not found'})
-#     #         return response, 404
-#     # else:
-#     #     response = jsonify({'message': 'you are uptodate'})
-#     #     return response, 402
-    
-
-
 
 
 @app.route('/ok', methods=['GET'])
