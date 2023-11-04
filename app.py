@@ -10,7 +10,8 @@ app = Flask(__name__)
 CORS(app)
 # MQTT broker configuration
 
-mqtt_broker = "34.142.56.252"
+# mqtt_broker = "34.142.56.252"
+mqtt_broker = "localhost"
 mqtt_port = 1883
 
 app.config['UPLOAD_FOLDER'] = './'
@@ -74,7 +75,7 @@ def funn():
             mqtt_client.subscribe('sensor/data', qos=1)
             mqtt_client.on_message = on_message
             message_ok_event.wait()  # Wait until the event is set (i.e., 'message ok' is received)
-            return "1", 200
+
         mqtt_client.publish('update/data', '0') 
         return "All lines published successfully", 200
 
